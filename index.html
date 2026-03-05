@@ -438,7 +438,7 @@
     function copyShareLink() {
       const link = window.location.href;
       navigator.clipboard.writeText(link);
-      alert('Link copied! Share with your team.');
+      alert(`Link copied:\n\n${link}`);
     }
     function openModal(id) { document.getElementById(id).classList.add('active'); }
     function closeModal(id) { document.getElementById(id).classList.remove('active'); }
@@ -493,7 +493,7 @@
       calculateWellness(); saveData(); updateDisplay();
       const shareText = `🎮 ${name} invites you to play ${gameNames[game]}! Join here: ${window.location.href}`;
       await navigator.clipboard.writeText(shareText);
-      alert(`Invite copied to clipboard! Send to your team.`);
+      alert(`Copied to clipboard:\n\n${shareText}`);
       closeModal('inviteModal'); state.selectedPeers = [];
     }
     
