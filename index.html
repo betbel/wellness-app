@@ -164,6 +164,14 @@
         </div>
       </div>
       
+      <div class="section-header"><span class="section-title">🃏 Daily Wellness Card</span><button class="btn btn-secondary" onclick="drawCard()">Draw Card</button></div>
+      <div class="wellness-card-container" id="cardContainer" style="margin-bottom: 30px;">
+        <div class="wellness-card-display" id="wellnessCard" onclick="drawCard()" style="background: linear-gradient(135deg, #1E293B, #334155); border-radius: 16px; padding: 30px; min-height: 180px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s;">
+          <div style="font-size: 48px; margin-bottom: 15px;">🃏</div>
+          <div style="color: #94A3B8; font-size: 16px;">Click to draw your daily card</div>
+        </div>
+      </div>
+      
       <div class="section-header"><span class="section-title">💡 Wellness Tips</span></div>
       <div class="tips-grid" style="margin-bottom: 30px;">
         <div class="tip-card"><div class="tip-icon">🌿</div><div class="tip-text">Take regular breaks to reduce stress</div></div>
@@ -240,13 +248,56 @@
   </div>
   
   <script>
+    const wellnessCards = [
+      { emoji: "🌅", title: "Morning Ritual", text: "Start your day with 5 minutes of deep breathing. How you begin shapes how you finish." },
+      { emoji: "💧", title: "Stay Hydrated", text: "Drink water regularly. Even mild dehydration affects mood and focus." },
+      { emoji: "🚶", title: "Move Your Body", text: "A 5-minute walk boosts creativity and reduces stress hormones." },
+      { emoji: "😴", title: "Rest Matters", text: "Quality sleep is the foundation of mental clarity and emotional balance." },
+      { emoji: "🍎", title: "Nourish Well", text: "Fuel your body with whole foods. What you eat affects how you think." },
+      { emoji: "🧘", title: "Breathe Deeply", text: "When stress rises, pause and take 3 deep breaths. It signals safety to your brain." },
+      { emoji: "📵", title: "Digital Detox", text: "Unplug for 30 minutes before bed. Your mind needs time to unwind." },
+      { emoji: "🤝", title: "Connect Truly", text: "Meaningful connections with others are key to happiness and health." },
+      { emoji: "⏰", title: "Protect Your Time", text: "Say no to what drains you. Guard your energy for what matters." },
+      { emoji: "🎯", title: "One Thing at a Time", text: "Multitasking lowers quality. Focus on one task for better results." },
+      { emoji: "🌿", title: "Nature Heals", text: "Spending time outdoors reduces cortisol and improves mood." },
+      { emoji: "📝", title: "Write It Down", text: "Journaling clarifies thoughts and processes emotions." },
+      { emoji: "🎵", title: "Music Medicine", text: "Listen to calming music. It can lower heart rate and reduce anxiety." },
+      { emoji: "☕", title: "Mindful Moments", text: "Pause while drinking coffee or tea. Savor the warmth, the aroma." },
+      { emoji: "🌙", title: "Evening Wind Down", text: "Create a calming routine before bed. Your body craves consistency." },
+      { emoji: "💪", title: "Set Boundaries", text: "It's okay to disconnect. Your well-being comes first." },
+      { emoji: "🤗", title: "Self-Compassion", text: "Treat yourself with the same kindness you'd give a good friend." },
+      { emoji: "🌈", title: "Find Joy Daily", text: "Notice small pleasures. Joy lives in ordinary moments." },
+      { emoji: "🔋", title: "Recharge Regularly", text: "Breaks aren't optional—they're essential for peak performance." },
+      { emoji: "🧠", title: "Use It or Lose It", text: "Challenge your mind daily. Learning new things keeps it sharp." },
+      { emoji: "❤️", title: "Heart Health", text: "What affects the heart affects the mind. Care for both." },
+      { emoji: "🎭", title: "Laugh Often", text: "Laughter reduces stress and strengthens immune system." },
+      { emoji: "🚫", title: "Declutter Space", text: "A tidy space creates a tidy mind. Start small." },
+      { emoji: "🌱", title: "Growth Mindset", text: "Challenges are opportunities to learn, not threats to fear." },
+      { emoji: "⏳", title: "Be Present", text: "Worrying about tomorrow steals joy from today. Stay here now." },
+      { emoji: "💭", title: "Release Rumination", text: "When thoughts spiral, name the emotion and let it pass." },
+      { emoji: "🏃", title: "Exercise Liberates", text: "Movement releases endorphins. Even stretching counts." },
+      { emoji: "🛋️", title: "Rest Is Productive", text: "Taking breaks actually improves productivity, not the opposite." },
+      { emoji: "🎨", title: "Create Something", text: "Expressing yourself artistically reduces stress and builds confidence." },
+      { emoji: "🙏", title: "Practice Gratitude", text: "Noting three good things daily shifts focus from lack to abundance." }
+    ];
+    
     let state = {
       wellnessScore: 100, breaksTaken: 0, gamesPlayed: 0, relaxTime: 0, streak: 0,
       lastBreakDate: null, peers: [{ name: 'Alice', status: 'Online' }, { name: 'Bob', status: 'Online' }, { name: 'Charlie', status: 'Away' }], selectedPeers: [],
-      settings: { userName: '', breakInterval: 60 }
+      settings: { userName: '', breakInterval: 60 }, todayCard: null
     };
     
-    function loadData() { const saved = localStorage.getItem('wellbeing_data'); if (saved) state = JSON.parse(saved); updateDisplay(); }
+    function loadData() { 
+      const saved = localStorage.getItem('wellbeing_data'); 
+      if (saved) { 
+        const parsed = JSON.parse(saved);
+        if (!parsed.peers || parsed.peers.length === 0) {
+          parsed.peers = [{ name: 'Alice', status: 'Online' }, { name: 'Bob', status: 'Online' }, { name: 'Charlie', status: 'Away' }];
+        }
+        state = parsed; 
+      }
+      updateDisplay(); 
+    }
     function saveData() { localStorage.setItem('wellbeing_data', JSON.stringify(state)); }
     
     function updateDisplay() {
@@ -262,6 +313,38 @@
       document.getElementById('userNameDisplay').textContent = name;
       document.getElementById('userAvatar').textContent = name.charAt(0).toUpperCase();
       renderPeers();
+      if (state.todayCard) {
+        const card = wellnessCards.find(c => c.title === state.todayCard);
+        if (card) showCard(card);
+      }
+    }
+    
+    function drawCard() {
+      const card = wellnessCards[Math.floor(Math.random() * wellnessCards.length)];
+      state.todayCard = card.title;
+      saveData();
+      showCard(card);
+    }
+    
+    function showCard(card) {
+      const gradients = [
+        'linear-gradient(135deg, #667eea, #764ba2)',
+        'linear-gradient(135deg, #f093fb, #f5576c)',
+        'linear-gradient(135deg, #4facfe, #00f2fe)',
+        'linear-gradient(135deg, #43e97b, #38f9d7)',
+        'linear-gradient(135deg, #fa709a, #fee140)',
+        'linear-gradient(135deg, #a8edea, #fed6e3)',
+        'linear-gradient(135deg, #ff9a9e, #fecfef)',
+        'linear-gradient(135deg, #ffecd2, #fcb69f)'
+      ];
+      const gradient = gradients[Math.floor(Math.random() * gradients.length)];
+      document.getElementById('wellnessCard').style.background = gradient;
+      document.getElementById('wellnessCard').innerHTML = `
+        <div style="font-size: 48px; margin-bottom: 15px;">${card.emoji}</div>
+        <div style="font-size: 20px; font-weight: 600; margin-bottom: 10px; text-align: center;">${card.title}</div>
+        <div style="color: rgba(255,255,255,0.9); font-size: 14px; text-align: center; line-height: 1.5;">${card.text}</div>
+        <div style="margin-top: 15px; font-size: 12px; opacity: 0.7;">Click for another card</div>
+      `;
     }
     
     function calculateWellness() {
@@ -314,7 +397,6 @@
       const name = document.getElementById('inviterName').value.trim() || 'Colleague';
       const game = document.getElementById('inviteGame').value;
       const gameNames = { memory: 'Memory Match', colorRush: 'Color Match', ticTacToe: 'Tic Tac Toe', zenGarden: 'Zen Garden' };
-      if (state.selectedPeers.length === 0) { alert('Select at least one!'); return; }
       state.breaksTaken++; state.gamesPlayed++; state.relaxTime += 10;
       const today = new Date().toDateString();
       if (state.lastBreakDate !== today) { state.streak++; state.lastBreakDate = today; }
