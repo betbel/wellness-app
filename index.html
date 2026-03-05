@@ -22,7 +22,7 @@
     
     .logo { display: flex; align-items: center; gap: 12px; margin-bottom: 30px; }
     .logo-icon { width: 48px; height: 48px; background: linear-gradient(135deg, #10B981, #06B6D4); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 24px; }
-    .logo-text { font-size: 20px; font-weight: 700; background: linear-gradient(135deg, #10B981, #06B6D4); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .logo-text { font-size: 20px; font-weight: 700; background: linear-gradient(135deg, #10B981, #06B6D4); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
     
     .nav-item { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 10px; cursor: pointer; color: #94A3B8; margin-bottom: 8px; transition: all 0.2s; }
     .nav-item:hover { background: #334155; color: #F8FAFC; }
@@ -507,116 +507,212 @@
     }
     
     // ========== GAMES ==========
-    let memCards = [], memFlipped = [], memScore = 0, memWaiting = false;
-    let targetColor = null, colorScore = 0;
-    let tttBoard = [], tttPlayer = 'X', tttGameOver = false;
+    let memCards = [], memFlipped = [], memScore = 0;
+    let colorScore = 0;
+    let ttt = { board: [], player: 'X', over: false };
     
     function startGame(name) {
       document.getElementById('gameTitle').textContent = name === 'memory' ? 'Memory Match' : name === 'colorRush' ? 'Color Match' : name === 'ticTacToe' ? 'Tic Tac Toe' : 'Zen Garden';
       document.getElementById('gameModal').classList.add('active');
-      if (name === 'memory') { document.getElementById('gameArea').innerHTML = `<div style="text-align:center;"><p>Find matching pairs!</p><div class="memory-grid" id="memGrid"></div><p>Score: <span id="memScore">0</span></p></div>`; initMemory(); }
-      else if (name === 'colorRush') { document.getElementById('gameArea').innerHTML = `<div style="text-align:center;"><p>Tap the matching color!</p><div class="color-display" id="colorDisplay"></div><p id="colorName" style="font-size:20px;margin:10px;"></p><p>Score: <span id="colorScore">0</span></p><div class="color-btns" id="colorBtns"></div></div>`; initColorRush(); }
-      else if (name === 'ticTacToe') { document.getElementById('gameArea').innerHTML = `<div style="text-align:center;"><p>You are X, play against O!</p><div class="ttt-status" id="tttStatus">Your turn (X)</div><div class="ttt-board" id="tttBoard"></div><button class="btn btn-secondary" onclick="initTicTacToe()">Restart</button></div>`; initTicTacToe(); }
-      else if (name === 'zenGarden') { document.getElementById('gameArea').innerHTML = `<div style="text-align:center;"><p>Relax and draw patterns</p><canvas id="zenCanvas" width="400" height="350"></canvas></div>`; initZenGarden(); }
+      
+      if (name === 'memory') {
+        document.getElementById('gameArea').innerHTML = '<div style="text-align:center;"><p>Find matching pairs!</p><div class="memory-grid" id="memGrid"></div><p>Score: <span id="memScore">0</span></p></div>';
+        initMemory();
+      } else if (name === 'colorRush') {
+        document.getElementById('gameArea').innerHTML = '<div style="text-align:center;"><p>Tap the matching color!</p><div class="color-display" id="colorDisplay"></div><p id="colorName" style="font-size:20px;margin:10px;"></p><p>Score: <span id="colorScore">0</span></p><div class="color-btns" id="colorBtns"></div></div>';
+        initColorRush();
+      } else if (name === 'ticTacToe') {
+        document.getElementById('gameArea').innerHTML = '<div style="text-align:center;"><p>You are X, play against O!</p><div class="ttt-status" id="tttStatus">Your turn (X)</div><div class="ttt-board" id="tttBoard"></div><button class="btn btn-secondary" onclick="initTicTacToe()">Restart</button></div>';
+        initTicTacToe();
+      } else if (name === 'zenGarden') {
+        document.getElementById('gameArea').innerHTML = '<div style="text-align:center;"><p>Relax and draw</p><canvas id="zenCanvas" width="400" height="300" style="border-radius:8px;cursor:crosshair;"></canvas></div>';
+        initZenGarden();
+      }
     }
     
     function initMemory() {
       const symbols = ['A','A','B','B','C','C','D','D','E','E','F','F','G','G','H','H'];
       symbols.sort(() => Math.random() - 0.5);
-      memCards = symbols.map(s => ({s, f: false, m: false})); memFlipped = []; memScore = 0; memWaiting = false;
-      const grid = document.getElementById('memGrid'); grid.innerHTML = '';
-      memCards.forEach((c, i) => { const d = document.createElement('div'); d.className = 'memory-card'; d.textContent = '?'; d.onclick = () => memFlip(i, d); grid.appendChild(d); });
+      memCards = symbols.map(s => ({symbol: s, flipped: false, matched: false}));
+      memFlipped = [];
+      memScore = 0;
+      const grid = document.getElementById('memGrid');
+      grid.innerHTML = '';
+      memCards.forEach((card, i) => {
+        const d = document.createElement('div');
+        d.className = 'memory-card';
+        d.textContent = '?';
+        d.onclick = function() { flipCard(i, d); };
+        grid.appendChild(d);
+      });
     }
     
-    function memFlip(i, el) {
-      if (memWaiting) return;
-      const c = memCards[i];
-      if (c.f || c.m || memFlipped.length >= 2) return;
-      c.f = true; memFlipped.push(i); el.textContent = c.s; el.classList.add('flipped');
+    function flipCard(index, el) {
+      const card = memCards[index];
+      if (card.flipped || card.matched || memFlipped.length >= 2) return;
+      
+      card.flipped = true;
+      memFlipped.push(index);
+      el.textContent = card.symbol;
+      el.classList.add('flipped');
+      
       if (memFlipped.length === 2) {
-        const c1 = memCards[memFlipped[0]], c2 = memCards[memFlipped[1]];
-        if (c1.s === c2.s) { 
-          c1.m = true; c2.m = true; memScore += 100; 
-          document.getElementById('memScore').textContent = memScore; 
-          state.gamesPlayed++; state.relaxTime += 2; calculateWellness(); saveData(); updateDisplay(); 
-          memFlipped = []; 
-          if (memCards.every(card => card.m)) {
-            setTimeout(() => alert('Congratulations! You won!'), 300);
-          }
-        }
-        else { 
-          memWaiting = true;
-          setTimeout(() => { 
-            memCards[memFlipped[0]].f = false; memCards[memFlipped[1]].f = false; 
-            document.getElementById('memGrid').children[memFlipped[0]].textContent = '?'; 
-            document.getElementById('memGrid').children[memFlipped[0]].classList.remove('flipped'); 
-            document.getElementById('memGrid').children[memFlipped[1]].textContent = '?'; 
-            document.getElementById('memGrid').children[memFlipped[1]].classList.remove('flipped'); 
-            memFlipped = []; 
-            memWaiting = false;
-          }, 800); 
-        }
+        setTimeout(checkMatch, 500);
       }
     }
     
+    function checkMatch() {
+      const i1 = memFlipped[0], i2 = memFlipped[1];
+      if (memCards[i1].symbol === memCards[i2].symbol) {
+        memCards[i1].matched = true;
+        memCards[i2].matched = true;
+        memScore += 100;
+        document.getElementById('memScore').textContent = memScore;
+        state.gamesPlayed++;
+        state.relaxTime += 2;
+        calculateWellness();
+        saveData();
+        updateDisplay();
+        if (memCards.every(c => c.matched)) {
+          setTimeout(() => alert('You won!'), 100);
+        }
+      } else {
+        memCards[i1].flipped = false;
+        memCards[i2].flipped = false;
+        const grid = document.getElementById('memGrid');
+        grid.children[i1].textContent = '?';
+        grid.children[i1].classList.remove('flipped');
+        grid.children[i2].textContent = '?';
+        grid.children[i2].classList.remove('flipped');
+      }
+      memFlipped = [];
+    }
+    
     function initColorRush() {
-      const colors = [{name:'Red',hex:'#EF4444'},{name:'Blue',hex:'#3B82F6'},{name:'Green',hex:'#22C55E'},{name:'Yellow',hex:'#EAB308'}];
-      targetColor = colors[Math.floor(Math.random() * colors.length)];
-      const wrong = colors[(colors.indexOf(targetColor) + 1) % colors.length];
-      document.getElementById('colorDisplay').style.background = targetColor.hex;
-      document.getElementById('colorName').textContent = 'COLOR: ' + wrong.name;
-      const btns = document.getElementById('colorBtns'); btns.innerHTML = '';
-      colors.sort(() => Math.random() - 0.5).forEach(c => { 
-        const b = document.createElement('button'); 
-        b.className = 'color-btn'; 
-        b.style.borderColor = c.hex; 
-        b.onclick = () => { 
-          if (c.name === targetColor.name) { 
-            colorScore += 10; 
+      const colors = [{n:'Red',c:'#EF4444'},{n:'Blue',c:'#3B82F6'},{n:'Green',c:'#22C55E'},{n:'Yellow',c:'#EAB308'}];
+      const target = colors[Math.floor(Math.random() * colors.length)];
+      const decoy = colors[(colors.indexOf(target) + 1) % colors.length];
+      
+      document.getElementById('colorDisplay').style.background = target.c;
+      document.getElementById('colorName').textContent = 'COLOR: ' + decoy.n;
+      colorScore = 0;
+      document.getElementById('colorScore').textContent = '0';
+      
+      const btns = document.getElementById('colorBtns');
+      btns.innerHTML = '';
+      colors.forEach(color => {
+        const b = document.createElement('button');
+        b.className = 'color-btn';
+        b.style.borderColor = color.c;
+        b.onclick = function() {
+          if (color.n === target.n) {
+            colorScore += 10;
             document.getElementById('colorScore').textContent = colorScore;
-            state.gamesPlayed++; state.relaxTime += 1; calculateWellness(); saveData(); updateDisplay(); 
-            initColorRush(); 
+            state.gamesPlayed++;
+            state.relaxTime += 1;
+            calculateWellness();
+            saveData();
+            updateDisplay();
+            initColorRush();
           } else {
             colorScore = Math.max(0, colorScore - 5);
             document.getElementById('colorScore').textContent = colorScore;
           }
-        }; 
-        btns.appendChild(b); 
+        };
+        btns.appendChild(b);
       });
     }
     
     function initTicTacToe() {
-      tttBoard = Array(9).fill(''); tttPlayer = 'X'; tttGameOver = false;
-      const board = document.getElementById('tttBoard'); board.innerHTML = '';
+      ttt.board = Array(9).fill('');
+      ttt.player = 'X';
+      ttt.over = false;
+      const board = document.getElementById('tttBoard');
+      board.innerHTML = '';
       document.getElementById('tttStatus').textContent = 'Your turn (X)';
-      tttBoard.forEach((cell, i) => { const d = document.createElement('div'); d.className = 'ttt-cell'; d.textContent = ''; d.onclick = () => tttMove(i, d); board.appendChild(d); });
+      for (let i = 0; i < 9; i++) {
+        const d = document.createElement('div');
+        d.className = 'ttt-cell';
+        d.onclick = function() { doTicTacToe(i, d); };
+        board.appendChild(d);
+      }
     }
     
-    function tttMove(i, el) {
-      if (tttBoard[i] || tttGameOver || tttPlayer === 'O') return;
-      tttBoard[i] = tttPlayer; el.textContent = tttPlayer; el.classList.add(tttPlayer.toLowerCase());
+    function doTicTacToe(i, el) {
+      if (ttt.board[i] || ttt.over || ttt.player === 'O') return;
       
-      const win = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]].find(combo => combo.every(idx => tttBoard[idx] === tttPlayer));
+      ttt.board[i] = ttt.player;
+      el.textContent = ttt.player;
+      el.classList.add(ttt.player.toLowerCase());
       
-      if (win) { document.getElementById('tttStatus').textContent = `You ${tttPlayer === 'X' ? 'Win!' : 'Lose!'}`; tttGameOver = true; state.gamesPlayed++; state.relaxTime += 5; calculateWellness(); saveData(); updateDisplay(); return; }
-      if (!tttBoard.includes('')) { document.getElementById('tttStatus').textContent = "It's a Draw!"; tttGameOver = true; state.gamesPlayed++; state.relaxTime += 5; calculateWellness(); saveData(); updateDisplay(); return; }
+      const wins = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+      const win = wins.some(combo => combo.every(j => ttt.board[j] === ttt.player));
       
-      tttPlayer = tttPlayer === 'X' ? 'O' : 'X';
-      document.getElementById('tttStatus').textContent = tttPlayer === 'X' ? 'Your turn (X)' : "Computer's turn (O)";
+      if (win) {
+        document.getElementById('tttStatus').textContent = 'You Win!';
+        ttt.over = true;
+        state.gamesPlayed++;
+        state.relaxTime += 5;
+        calculateWellness();
+        saveData();
+        updateDisplay();
+        return;
+      }
       
-      if (tttPlayer === 'O') { setTimeout(() => { const empty = tttBoard.map((c, i) => c === '' ? i : -1).filter(i => i >= 0); if (empty.length) { const move = empty[Math.floor(Math.random() * empty.length)]; const cell = document.getElementById('tttBoard').children[move]; tttMove(move, cell); } }, 500); }
+      if (!ttt.board.includes('')) {
+        document.getElementById('tttStatus').textContent = "It's a Draw!";
+        ttt.over = true;
+        state.gamesPlayed++;
+        state.relaxTime += 5;
+        calculateWellness();
+        saveData();
+        updateDisplay();
+        return;
+      }
+      
+      ttt.player = ttt.player === 'X' ? 'O' : 'X';
+      document.getElementById('tttStatus').textContent = ttt.player === 'X' ? 'Your turn (X)' : "Computer's turn";
+      
+      if (ttt.player === 'O') {
+        setTimeout(computerMove, 400);
+      }
+    }
+    
+    function computerMove() {
+      const empty = ttt.board.map((c, i) => c === '' ? i : -1).filter(i => i >= 0);
+      if (empty.length === 0) return;
+      const move = empty[Math.floor(Math.random() * empty.length)];
+      const cell = document.getElementById('tttBoard').children[move];
+      doTicTacToe(move, cell);
     }
     
     function initZenGarden() {
-      const c = document.getElementById('zenCanvas'); const ctx = c.getContext('2d');
-      ctx.fillStyle = '#D4A574'; ctx.fillRect(0, 0, c.width, c.height);
-      state.gamesPlayed++; state.relaxTime += 5; calculateWellness(); saveData(); updateDisplay();
-      let isDrawing = false;
-      c.onmousedown = e => { isDrawing = true; draw(e); };
-      c.onmouseup = () => isDrawing = false;
-      c.onmouseleave = () => isDrawing = false;
-      c.onmousemove = e => { if (isDrawing) draw(e); };
-      function draw(e) { const r = c.getBoundingClientRect(); ctx.strokeStyle = 'rgba(180,140,100,0.5)'; ctx.lineWidth = 8; ctx.beginPath(); ctx.arc(e.clientX - r.left, e.clientY - r.top, 15, 0, Math.PI*2); ctx.stroke(); }
+      const canvas = document.getElementById('zenCanvas');
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#D4A574';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      state.gamesPlayed++;
+      state.relaxTime += 5;
+      calculateWellness();
+      saveData();
+      updateDisplay();
+      
+      let drawing = false;
+      canvas.onmousedown = function(e) { drawing = true; draw(e); };
+      canvas.onmouseup = function() { drawing = false; };
+      canvas.onmouseleave = function() { drawing = false; };
+      canvas.onmousemove = function(e) { if (drawing) draw(e); };
+      
+      function draw(e) {
+        const r = canvas.getBoundingClientRect();
+        ctx.strokeStyle = 'rgba(180,140,100,0.6)';
+        ctx.lineWidth = 10;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(e.clientX - r.left, e.clientY - r.top);
+        ctx.lineTo(e.clientX - r.left + 1, e.clientY - r.top + 1);
+        ctx.stroke();
+      }
     }
     
     document.querySelectorAll('.modal').forEach(m => { m.onclick = e => { if (e.target === m) m.classList.remove('active'); }; });
