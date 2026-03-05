@@ -423,9 +423,13 @@
     
     function showPage(page) { 
       document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active')); 
-      event.target.closest('.nav-item').classList.add('active');
+      if (event && event.target) {
+        const navItem = event.target.closest('.nav-item');
+        if (navItem) navItem.classList.add('active');
+      }
       document.querySelectorAll('[id^="page-"]').forEach(p => p.style.display = 'none');
-      document.getElementById('page-' + page).style.display = 'block';
+      const targetPage = document.getElementById('page-' + page);
+      if (targetPage) targetPage.style.display = 'block';
       if (page === 'team') {
         document.getElementById('shareLink').value = window.location.href;
         renderPeersFull();
@@ -438,7 +442,10 @@
     }
     function openModal(id) { document.getElementById(id).classList.add('active'); }
     function closeModal(id) { document.getElementById(id).classList.remove('active'); }
-    function openSettings() { openModal('settingsModal'); }
+    function openSettings() { 
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+      openModal('settingsModal'); 
+    }
     
     function openGameModal() {
       openModal('gameModal');
@@ -500,13 +507,15 @@
     }
     
     // ========== GAMES ==========
-    let memCards = [], memFlipped = [], memScore = 0;
+    let memCards = [], memFlipped = [], memScore = 0, memWaiting = false;
+    let targetColor = null, colorScore = 0;
+    let tttBoard = [], tttPlayer = 'X', tttGameOver = false;
     
     function startGame(name) {
       document.getElementById('gameTitle').textContent = name === 'memory' ? 'Memory Match' : name === 'colorRush' ? 'Color Match' : name === 'ticTacToe' ? 'Tic Tac Toe' : 'Zen Garden';
       document.getElementById('gameModal').classList.add('active');
       if (name === 'memory') { document.getElementById('gameArea').innerHTML = `<div style="text-align:center;"><p>Find matching pairs!</p><div class="memory-grid" id="memGrid"></div><p>Score: <span id="memScore">0</span></p></div>`; initMemory(); }
-      else if (name === 'colorRush') { document.getElementById('gameArea').innerHTML = `<div style="text-align:center;"><p>Tap the matching color!</p><div class="color-display" id="colorDisplay"></div><p id="colorName" style="font-size:20px;margin:10px;"></p><div class="color-btns" id="colorBtns"></div></div>`; initColorRush(); }
+      else if (name === 'colorRush') { document.getElementById('gameArea').innerHTML = `<div style="text-align:center;"><p>Tap the matching color!</p><div class="color-display" id="colorDisplay"></div><p id="colorName" style="font-size:20px;margin:10px;"></p><p>Score: <span id="colorScore">0</span></p><div class="color-btns" id="colorBtns"></div></div>`; initColorRush(); }
       else if (name === 'ticTacToe') { document.getElementById('gameArea').innerHTML = `<div style="text-align:center;"><p>You are X, play against O!</p><div class="ttt-status" id="tttStatus">Your turn (X)</div><div class="ttt-board" id="tttBoard"></div><button class="btn btn-secondary" onclick="initTicTacToe()">Restart</button></div>`; initTicTacToe(); }
       else if (name === 'zenGarden') { document.getElementById('gameArea').innerHTML = `<div style="text-align:center;"><p>Relax and draw patterns</p><canvas id="zenCanvas" width="400" height="350"></canvas></div>`; initZenGarden(); }
     }
@@ -514,36 +523,67 @@
     function initMemory() {
       const symbols = ['A','A','B','B','C','C','D','D','E','E','F','F','G','G','H','H'];
       symbols.sort(() => Math.random() - 0.5);
-      memCards = symbols.map(s => ({s, f: false, m: false})); memFlipped = []; memScore = 0;
+      memCards = symbols.map(s => ({s, f: false, m: false})); memFlipped = []; memScore = 0; memWaiting = false;
       const grid = document.getElementById('memGrid'); grid.innerHTML = '';
       memCards.forEach((c, i) => { const d = document.createElement('div'); d.className = 'memory-card'; d.textContent = '?'; d.onclick = () => memFlip(i, d); grid.appendChild(d); });
     }
     
     function memFlip(i, el) {
+      if (memWaiting) return;
       const c = memCards[i];
       if (c.f || c.m || memFlipped.length >= 2) return;
       c.f = true; memFlipped.push(i); el.textContent = c.s; el.classList.add('flipped');
       if (memFlipped.length === 2) {
         const c1 = memCards[memFlipped[0]], c2 = memCards[memFlipped[1]];
-        if (c1.s === c2.s) { c1.m = true; c2.m = true; memScore += 100; document.getElementById('memScore').textContent = memScore; state.gamesPlayed++; state.relaxTime += 2; calculateWellness(); saveData(); updateDisplay(); memFlipped = []; }
-        else { setTimeout(() => { memCards[memFlipped[0]].f = false; memCards[memFlipped[1]].f = false; document.getElementById('memGrid').children[memFlipped[0]].textContent = '?'; document.getElementById('memGrid').children[memFlipped[0]].classList.remove('flipped'); document.getElementById('memGrid').children[memFlipped[1]].textContent = '?'; document.getElementById('memGrid').children[memFlipped[1]].classList.remove('flipped'); memFlipped = []; }, 500); }
+        if (c1.s === c2.s) { 
+          c1.m = true; c2.m = true; memScore += 100; 
+          document.getElementById('memScore').textContent = memScore; 
+          state.gamesPlayed++; state.relaxTime += 2; calculateWellness(); saveData(); updateDisplay(); 
+          memFlipped = []; 
+          if (memCards.every(card => card.m)) {
+            setTimeout(() => alert('Congratulations! You won!'), 300);
+          }
+        }
+        else { 
+          memWaiting = true;
+          setTimeout(() => { 
+            memCards[memFlipped[0]].f = false; memCards[memFlipped[1]].f = false; 
+            document.getElementById('memGrid').children[memFlipped[0]].textContent = '?'; 
+            document.getElementById('memGrid').children[memFlipped[0]].classList.remove('flipped'); 
+            document.getElementById('memGrid').children[memFlipped[1]].textContent = '?'; 
+            document.getElementById('memGrid').children[memFlipped[1]].classList.remove('flipped'); 
+            memFlipped = []; 
+            memWaiting = false;
+          }, 800); 
+        }
       }
     }
     
-    const colors = [{name:'Red',hex:'#EF4444'},{name:'Blue',hex:'#3B82F6'},{name:'Green',hex:'#22C55E'},{name:'Yellow',hex:'#EAB308'}];
-    let targetColor = null;
-    
     function initColorRush() {
+      const colors = [{name:'Red',hex:'#EF4444'},{name:'Blue',hex:'#3B82F6'},{name:'Green',hex:'#22C55E'},{name:'Yellow',hex:'#EAB308'}];
       targetColor = colors[Math.floor(Math.random() * colors.length)];
       const wrong = colors[(colors.indexOf(targetColor) + 1) % colors.length];
       document.getElementById('colorDisplay').style.background = targetColor.hex;
-      document.getElementById('colorName').textContent = wrong.name;
+      document.getElementById('colorName').textContent = 'COLOR: ' + wrong.name;
       const btns = document.getElementById('colorBtns'); btns.innerHTML = '';
-      colors.sort(() => Math.random() - 0.5).forEach(c => { const b = document.createElement('button'); b.className = 'color-btn'; b.style.borderColor = c.hex; b.onclick = () => { if (c.name === targetColor.name) { state.gamesPlayed++; state.relaxTime += 1; calculateWellness(); saveData(); updateDisplay(); initColorRush(); } }; btns.appendChild(b); });
+      colors.sort(() => Math.random() - 0.5).forEach(c => { 
+        const b = document.createElement('button'); 
+        b.className = 'color-btn'; 
+        b.style.borderColor = c.hex; 
+        b.onclick = () => { 
+          if (c.name === targetColor.name) { 
+            colorScore += 10; 
+            document.getElementById('colorScore').textContent = colorScore;
+            state.gamesPlayed++; state.relaxTime += 1; calculateWellness(); saveData(); updateDisplay(); 
+            initColorRush(); 
+          } else {
+            colorScore = Math.max(0, colorScore - 5);
+            document.getElementById('colorScore').textContent = colorScore;
+          }
+        }; 
+        btns.appendChild(b); 
+      });
     }
-    
-    // Tic Tac Toe
-    let tttBoard = [], tttPlayer = 'X', tttGameOver = false;
     
     function initTicTacToe() {
       tttBoard = Array(9).fill(''); tttPlayer = 'X'; tttGameOver = false;
@@ -553,7 +593,7 @@
     }
     
     function tttMove(i, el) {
-      if (tttBoard[i] || tttGameOver) return;
+      if (tttBoard[i] || tttGameOver || tttPlayer === 'O') return;
       tttBoard[i] = tttPlayer; el.textContent = tttPlayer; el.classList.add(tttPlayer.toLowerCase());
       
       const win = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]].find(combo => combo.every(idx => tttBoard[idx] === tttPlayer));
@@ -571,7 +611,12 @@
       const c = document.getElementById('zenCanvas'); const ctx = c.getContext('2d');
       ctx.fillStyle = '#D4A574'; ctx.fillRect(0, 0, c.width, c.height);
       state.gamesPlayed++; state.relaxTime += 5; calculateWellness(); saveData(); updateDisplay();
-      c.onmousemove = e => { const r = c.getBoundingClientRect(); ctx.strokeStyle = 'rgba(180,140,100,0.5)'; ctx.lineWidth = 8; ctx.beginPath(); ctx.arc(e.clientX - r.left, e.clientY - r.top, 15, 0, Math.PI*2); ctx.stroke(); };
+      let isDrawing = false;
+      c.onmousedown = e => { isDrawing = true; draw(e); };
+      c.onmouseup = () => isDrawing = false;
+      c.onmouseleave = () => isDrawing = false;
+      c.onmousemove = e => { if (isDrawing) draw(e); };
+      function draw(e) { const r = c.getBoundingClientRect(); ctx.strokeStyle = 'rgba(180,140,100,0.5)'; ctx.lineWidth = 8; ctx.beginPath(); ctx.arc(e.clientX - r.left, e.clientY - r.top, 15, 0, Math.PI*2); ctx.stroke(); }
     }
     
     document.querySelectorAll('.modal').forEach(m => { m.onclick = e => { if (e.target === m) m.classList.remove('active'); }; });
