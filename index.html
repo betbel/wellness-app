@@ -124,7 +124,8 @@
     <aside class="sidebar">
       <div class="logo"><div class="logo-icon">🧘</div><span class="logo-text">WorkWellbeing</span></div>
       <nav>
-        <div class="nav-item active" onclick="showPage('dashboard')"><span class="nav-icon">📊</span><span>Dashboard</span></div>
+        <div class="nav-item active" onclick="showPage('home')"><span class="nav-icon">🏠</span><span>Home</span></div>
+        <div class="nav-item" onclick="showPage('dashboard')"><span class="nav-icon">📊</span><span>Dashboard</span></div>
         <div class="nav-item" onclick="showPage('games')"><span class="nav-icon">🎮</span><span>Games</span></div>
         <div class="nav-item" onclick="showPage('team')"><span class="nav-icon">👥</span><span>Team</span></div>
         <div class="nav-item" onclick="showReport()"><span class="nav-icon">📈</span><span>Report</span></div>
@@ -142,7 +143,57 @@
     </aside>
     
     <main class="main-content">
-      <div id="page-dashboard">
+      <div id="page-home" style="display:none;">
+        <div class="header-section">
+          <div class="header-title"><h1>🧘 WorkWellbeing</h1><p>Your workplace wellness companion</p></div>
+        </div>
+        
+        <div class="card" style="margin-bottom:20px;">
+          <h2 style="margin-bottom:15px;">Why WorkWellbeing?</h2>
+          <p style="color:#94A3B8;line-height:1.8;margin-bottom:20px;">
+            WorkWellbeing helps you and your team maintain healthy work habits by providing quick mental breaks through fun games and daily wellness reminders. 
+            Regular breaks improve focus, reduce stress, and boost productivity.
+          </p>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:15px;margin-top:20px;">
+            <div style="text-align:center;padding:20px;background:#0F172A;border-radius:12px;">
+              <div style="font-size:32px;margin-bottom:10px;">🎮</div>
+              <div style="font-weight:600;">Quick Games</div>
+              <div style="font-size:12px;color:#94A3B8;">5-10 min breaks</div>
+            </div>
+            <div style="text-align:center;padding:20px;background:#0F172A;border-radius:12px;">
+              <div style="font-size:32px;margin-bottom:10px;">🃏</div>
+              <div style="font-weight:600;">Daily Cards</div>
+              <div style="font-size:12px;color:#94A3B8;">Wellness wisdom</div>
+            </div>
+            <div style="text-align:center;padding:20px;background:#0F172A;border-radius:12px;">
+              <div style="font-size:32px;margin-bottom:10px;">👥</div>
+              <div style="font-weight:600;">Team Fun</div>
+              <div style="font-size:12px;color:#94A3B8;">Invite colleagues</div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="card" style="margin-bottom:20px;">
+          <h2 style="margin-bottom:15px;">What You Can Do</h2>
+          <div style="color:#94A3B8;line-height:2;">
+            <div>✅ <strong>Play games</strong> - Memory Match, Color Match, Tic Tac Toe, Zen Garden</div>
+            <div>✅ <strong>Track wellness</strong> - Score based on breaks and games</div>
+            <div>✅ <strong>Draw daily cards</strong> - Get wellness tips and reminders</div>
+            <div>✅ <strong>Invite team</strong> - Share the app with colleagues</div>
+            <div>✅ <strong>View reports</strong> - See your wellness journey</div>
+          </div>
+        </div>
+        
+        <div class="card" style="background:linear-gradient(135deg,#10B981,#06B6D4);">
+          <div style="text-align:center;">
+            <div style="font-size:48px;margin-bottom:15px;">🚀</div>
+            <div style="font-size:20px;font-weight:600;margin-bottom:10px;">Ready to start?</div>
+            <button class="btn" style="background:white;color:#10B981;" onclick="showPage('dashboard')">Go to Dashboard →</button>
+          </div>
+        </div>
+      </div>
+      
+      <div id="page-dashboard" style="display:none;">
         <div class="header-section">
           <div class="header-title"><h1>Welcome Back! 👋</h1><p>Let's focus on your wellness today</p></div>
         </div>
@@ -173,31 +224,9 @@
           </div>
         </div>
         
-        <div class="section-header"><span class="section-title">💡 Wellness Tips</span></div>
-        <div class="tips-grid" style="margin-bottom: 30px;">
-          <div class="tip-card"><div class="tip-icon">🌿</div><div class="tip-text">Take regular breaks to reduce stress</div></div>
-          <div class="tip-card"><div class="tip-icon">🎮</div><div class="tip-text">Play games to refresh your mind</div></div>
-          <div class="tip-card"><div class="tip-icon">👥</div><div class="tip-text">Invite colleagues for fun breaks</div></div>
-        </div>
-        
-        <div class="section-header"><span class="section-title">🎮 Break Activities</span><button class="btn btn-secondary" onclick="openInviteModal()">👥 Invite Team</button></div>
-        <div class="games-grid" id="gamesGrid">
-          <div class="game-card" onclick="startGame('memory')">
-            <div class="game-thumb" style="background: linear-gradient(135deg, #10B981, #34D399);">🧠</div>
-            <div class="game-info"><div class="game-name">Memory Match</div><div class="game-duration">5 min • Solo</div></div>
-          </div>
-          <div class="game-card" onclick="startGame('colorRush')">
-            <div class="game-thumb" style="background: linear-gradient(135deg, #F59E0B, #FBBF24);">🎨</div>
-            <div class="game-info"><div class="game-name">Color Match</div><div class="game-duration">3 min • Solo</div></div>
-          </div>
-          <div class="game-card" onclick="startGame('ticTacToe')">
-            <div class="game-thumb" style="background: linear-gradient(135deg, #EC4899, #F472B6);">❌⭕</div>
-            <div class="game-info"><div class="game-name">Tic Tac Toe</div><div class="game-duration">5 min • 2 Players</div></div>
-          </div>
-          <div class="game-card" onclick="startGame('zenGarden')">
-            <div class="game-thumb" style="background: linear-gradient(135deg, #06B6D4, #22D3EE);">🌸</div>
-            <div class="game-info"><div class="game-name">Zen Garden</div><div class="game-duration">10 min • Relax</div></div>
-          </div>
+        <div style="text-align:center;padding:30px;background:#1E293B;border-radius:12px;">
+          <p style="color:#94A3B8;margin-bottom:15px;">Want to play? Check out the Games page!</p>
+          <button class="btn btn-primary" onclick="showPage('games')">� Go to Games</button>
         </div>
       </div>
       
@@ -547,6 +576,7 @@
     
     document.querySelectorAll('.modal').forEach(m => { m.onclick = e => { if (e.target === m) m.classList.remove('active'); }; });
     loadData();
+    showPage('home');
   </script>
 </body>
 </html>
