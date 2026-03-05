@@ -124,10 +124,10 @@
     <aside class="sidebar">
       <div class="logo"><div class="logo-icon">🧘</div><span class="logo-text">WorkWellbeing</span></div>
       <nav>
-        <div class="nav-item active" onclick="showPage('home')"><span class="nav-icon">🏠</span><span>Home</span></div>
-        <div class="nav-item" onclick="showPage('dashboard')"><span class="nav-icon">📊</span><span>Dashboard</span></div>
-        <div class="nav-item" onclick="showPage('games')"><span class="nav-icon">🎮</span><span>Games</span></div>
-        <div class="nav-item" onclick="showPage('team')"><span class="nav-icon">👥</span><span>Team</span></div>
+        <div class="nav-item active" onclick="showPage('home', event)"><span class="nav-icon">🏠</span><span>Home</span></div>
+        <div class="nav-item" onclick="showPage('dashboard', event)"><span class="nav-icon">📊</span><span>Dashboard</span></div>
+        <div class="nav-item" onclick="showPage('games', event)"><span class="nav-icon">🎮</span><span>Games</span></div>
+        <div class="nav-item" onclick="showPage('team', event)"><span class="nav-icon">👥</span><span>Team</span></div>
         <div class="nav-item" onclick="showReport()"><span class="nav-icon">📈</span><span>Report</span></div>
         <div class="nav-item" onclick="openSettings()"><span class="nav-icon">⚙️</span><span>Settings</span></div>
       </nav>
@@ -352,34 +352,53 @@
     };
     
     function loadData() { 
-      const saved = localStorage.getItem('wellbeing_data'); 
-      if (saved) { 
-        const parsed = JSON.parse(saved);
-        if (!parsed.peers || parsed.peers.length === 0) {
-          parsed.peers = [{ name: 'Alice', status: 'Online' }, { name: 'Bob', status: 'Online' }, { name: 'Charlie', status: 'Away' }];
+      try {
+        const saved = localStorage.getItem('wellbeing_data'); 
+        if (saved) { 
+          const parsed = JSON.parse(saved);
+          if (!parsed.peers || !Array.isArray(parsed.peers) || parsed.peers.length === 0) {
+            parsed.peers = [{ name: 'Alice', status: 'Online' }, { name: 'Bob', status: 'Online' }, { name: 'Charlie', status: 'Away' }];
+          }
+          state = parsed; 
         }
-        state = parsed; 
+      } catch (e) {
+        console.warn('Data load error:', e);
       }
       updateDisplay(); 
     }
-    function saveData() { localStorage.setItem('wellbeing_data', JSON.stringify(state)); }
+    function saveData() { 
+      try { localStorage.setItem('wellbeing_data', JSON.stringify(state)); } catch(e) {} 
+    }
     
     function updateDisplay() {
-      document.getElementById('scoreRing').style.strokeDashoffset = 282.74 - (state.wellnessScore / 100) * 282.74;
-      document.getElementById('breaksTaken').textContent = state.breaksTaken;
-      document.getElementById('gamesPlayed').textContent = state.gamesPlayed;
-      document.getElementById('relaxTime').textContent = state.relaxTime + 'm';
-      document.getElementById('streak').textContent = state.streak;
-      document.getElementById('sidebarScore').textContent = state.wellnessScore;
-      document.getElementById('userName').value = state.settings.userName || '';
-      document.getElementById('inviterName').value = state.settings.userName || '';
-      const name = state.settings.userName || 'User';
-      document.getElementById('userNameDisplay').textContent = name;
-      document.getElementById('userAvatar').textContent = name.charAt(0).toUpperCase();
-      renderPeers();
-      if (state.todayCard) {
-        const card = wellnessCards.find(c => c.title === state.todayCard);
-        if (card) showCard(card);
+      try {
+        const ring = document.getElementById('scoreRing');
+        if (ring) ring.style.strokeDashoffset = 282.74 - (state.wellnessScore / 100) * 282.74;
+        
+        const setTxt = (id, val) => { const el = document.getElementById(id); if(el) el.textContent = val; };
+        const setVal = (id, val) => { const el = document.getElementById(id); if(el) el.value = val; };
+        
+        setTxt('breaksTaken', state.breaksTaken);
+        setTxt('gamesPlayed', state.gamesPlayed);
+        setTxt('relaxTime', state.relaxTime + 'm');
+        setTxt('streak', state.streak);
+        setTxt('sidebarScore', state.wellnessScore);
+        
+        setVal('userName', state.settings.userName || '');
+        setVal('inviterName', state.settings.userName || '');
+        
+        const name = state.settings.userName || 'User';
+        setTxt('userNameDisplay', name);
+        setTxt('userAvatar', name.charAt(0).toUpperCase());
+        
+        if (typeof renderPeers === 'function') renderPeers();
+        
+        if (state.todayCard) {
+          const card = wellnessCards.find(c => c.title === state.todayCard);
+          if (card) showCard(card);
+        }
+      } catch (err) {
+        console.error('Update display error:', err);
       }
     }
     
@@ -391,6 +410,9 @@
     }
     
     function showCard(card) {
+      const el = document.getElementById('wellnessCard');
+      if (!el) return;
+      
       const gradients = [
         'linear-gradient(135deg, #667eea, #764ba2)',
         'linear-gradient(135deg, #f093fb, #f5576c)',
@@ -402,8 +424,8 @@
         'linear-gradient(135deg, #ffecd2, #fcb69f)'
       ];
       const gradient = gradients[Math.floor(Math.random() * gradients.length)];
-      document.getElementById('wellnessCard').style.background = gradient;
-      document.getElementById('wellnessCard').innerHTML = `
+      el.style.background = gradient;
+      el.innerHTML = `
         <div style="font-size: 48px; margin-bottom: 15px;">${card.emoji}</div>
         <div style="font-size: 20px; font-weight: 600; margin-bottom: 10px; text-align: center;">${card.title}</div>
         <div style="color: rgba(255,255,255,0.9); font-size: 14px; text-align: center; line-height: 1.5;">${card.text}</div>
@@ -421,24 +443,31 @@
       state.wellnessScore = Math.max(0, Math.min(100, score));
     }
     
-    function showPage(page) { 
+    function showPage(page, e) { 
       document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active')); 
-      if (event && event.target) {
-        const navItem = event.target.closest('.nav-item');
-        if (navItem) navItem.classList.add('active');
+      if (e && e.currentTarget) {
+        e.currentTarget.classList.add('active');
       }
       document.querySelectorAll('[id^="page-"]').forEach(p => p.style.display = 'none');
       const targetPage = document.getElementById('page-' + page);
       if (targetPage) targetPage.style.display = 'block';
       if (page === 'team') {
-        document.getElementById('shareLink').value = window.location.href;
-        renderPeersFull();
+        const linkInput = document.getElementById('shareLink');
+        if (linkInput) linkInput.value = window.location.href;
+        if (typeof renderPeersFull === 'function') renderPeersFull();
       }
     }
     function copyShareLink() {
       const link = window.location.href;
-      navigator.clipboard.writeText(link);
-      alert(`Link copied:\n\n${link}`);
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(link).then(() => {
+          alert(`Link copied:\n\n${link}`);
+        }).catch(() => {
+          prompt('Copy this link:', link);
+        });
+      } else {
+        prompt('Copy this link:', link);
+      }
     }
     function openModal(id) { document.getElementById(id).classList.add('active'); }
     function closeModal(id) { document.getElementById(id).classList.remove('active'); }
@@ -567,7 +596,8 @@
         memCards[i1].matched = true;
         memCards[i2].matched = true;
         memScore += 100;
-        document.getElementById('memScore').textContent = memScore;
+        const el = document.getElementById('memScore');
+        if (el) el.textContent = memScore;
         state.gamesPlayed++;
         state.relaxTime += 2;
         calculateWellness();
@@ -580,10 +610,12 @@
         memCards[i1].flipped = false;
         memCards[i2].flipped = false;
         const grid = document.getElementById('memGrid');
-        grid.children[i1].textContent = '?';
-        grid.children[i1].classList.remove('flipped');
-        grid.children[i2].textContent = '?';
-        grid.children[i2].classList.remove('flipped');
+        if (grid && grid.children[i1] && grid.children[i2]) {
+          grid.children[i1].textContent = '?';
+          grid.children[i1].classList.remove('flipped');
+          grid.children[i2].textContent = '?';
+          grid.children[i2].classList.remove('flipped');
+        }
       }
       memFlipped = [];
     }
@@ -593,12 +625,16 @@
       const target = colors[Math.floor(Math.random() * colors.length)];
       const decoy = colors[(colors.indexOf(target) + 1) % colors.length];
       
-      document.getElementById('colorDisplay').style.background = target.c;
-      document.getElementById('colorName').textContent = 'COLOR: ' + decoy.n;
+      const disp = document.getElementById('colorDisplay');
+      if (disp) disp.style.background = target.c;
+      const name = document.getElementById('colorName');
+      if (name) name.textContent = 'COLOR: ' + decoy.n;
       colorScore = 0;
-      document.getElementById('colorScore').textContent = '0';
+      const scoreEl = document.getElementById('colorScore');
+      if (scoreEl) scoreEl.textContent = '0';
       
       const btns = document.getElementById('colorBtns');
+      if (!btns) return;
       btns.innerHTML = '';
       colors.forEach(color => {
         const b = document.createElement('button');
@@ -607,7 +643,8 @@
         b.onclick = function() {
           if (color.n === target.n) {
             colorScore += 10;
-            document.getElementById('colorScore').textContent = colorScore;
+            const s = document.getElementById('colorScore');
+            if (s) s.textContent = colorScore;
             state.gamesPlayed++;
             state.relaxTime += 1;
             calculateWellness();
@@ -616,7 +653,8 @@
             initColorRush();
           } else {
             colorScore = Math.max(0, colorScore - 5);
-            document.getElementById('colorScore').textContent = colorScore;
+            const s = document.getElementById('colorScore');
+            if (s) s.textContent = colorScore;
           }
         };
         btns.appendChild(b);
@@ -648,8 +686,10 @@
       const wins = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
       const win = wins.some(combo => combo.every(j => ttt.board[j] === ttt.player));
       
+      const statusEl = document.getElementById('tttStatus');
+      
       if (win) {
-        document.getElementById('tttStatus').textContent = 'You Win!';
+        if (statusEl) statusEl.textContent = 'You Win!';
         ttt.over = true;
         state.gamesPlayed++;
         state.relaxTime += 5;
@@ -660,7 +700,7 @@
       }
       
       if (!ttt.board.includes('')) {
-        document.getElementById('tttStatus').textContent = "It's a Draw!";
+        if (statusEl) statusEl.textContent = "It's a Draw!";
         ttt.over = true;
         state.gamesPlayed++;
         state.relaxTime += 5;
@@ -671,7 +711,7 @@
       }
       
       ttt.player = ttt.player === 'X' ? 'O' : 'X';
-      document.getElementById('tttStatus').textContent = ttt.player === 'X' ? 'Your turn (X)' : "Computer's turn";
+      if (statusEl) statusEl.textContent = ttt.player === 'X' ? 'Your turn (X)' : "Computer's turn";
       
       if (ttt.player === 'O') {
         setTimeout(computerMove, 400);
@@ -718,6 +758,8 @@
     document.querySelectorAll('.modal').forEach(m => { m.onclick = e => { if (e.target === m) m.classList.remove('active'); }; });
     loadData();
     showPage('home');
+    const homeNav = document.querySelector('.nav-item');
+    if (homeNav) homeNav.classList.add('active');
   </script>
 </body>
 </html>
