@@ -16,22 +16,32 @@
       --accent-color: #10B981;
     }
     [data-theme="ocean"] {
-      --bg-color: #0F172A;
-      --card-bg: #1E293B;
-      --accent-grad: linear-gradient(135deg, #3B82F6, #06B6D4);
-      --accent-color: #3B82F6;
+      --bg-color: #0f172a;
+      --card-bg: #1e293b;
+      --accent-grad: linear-gradient(135deg, #0ea5e9, #2563eb);
+      --accent-color: #0ea5e9;
+      --border-color: #334155;
     }
     [data-theme="forest"] {
-      --bg-color: #052e16;
-      --card-bg: #14532d;
-      --accent-grad: linear-gradient(135deg, #22c55e, #84cc16);
-      --accent-color: #22c55e;
+      --bg-color: #1a2e05;
+      --card-bg: #28450a;
+      --accent-grad: linear-gradient(135deg, #84cc16, #22c55e);
+      --accent-color: #84cc16;
+      --border-color: #3f6212;
     }
     [data-theme="sunset"] {
-      --bg-color: #450a0a;
-      --card-bg: #7f1d1d;
-      --accent-grad: linear-gradient(135deg, #f59e0b, #ef4444);
+      --bg-color: #2a1b1b;
+      --card-bg: #452626;
+      --accent-grad: linear-gradient(135deg, #f59e0b, #e11d48);
       --accent-color: #f59e0b;
+      --border-color: #683434;
+    }
+    [data-theme="purple"] {
+      --bg-color: #1e1b4b;
+      --card-bg: #312e81;
+      --accent-grad: linear-gradient(135deg, #818cf8, #4f46e5);
+      --accent-color: #818cf8;
+      --border-color: #4338ca;
     }
     
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -358,6 +368,7 @@
           <option value="ocean">Ocean Blue</option>
           <option value="forest">Forest Green</option>
           <option value="sunset">Sunset Orange</option>
+          <option value="purple">Purple Dream</option>
         </select>
       </div>
       <hr style="border-color:var(--border-color);margin:20px 0;">
@@ -414,10 +425,10 @@
 
     // Music Player Logic
     const tracks = {
-      rain: 'https://cdn.pixabay.com/download/audio/2022/05/17/audio_1808fbf07a.mp3?filename=soft-rain-ambient-111163.mp3',
-      forest: 'https://cdn.pixabay.com/download/audio/2021/09/06/audio_3622421379.mp3?filename=forest-with-small-river-birds-and-nature-field-recording-6735.mp3',
-      waves: 'https://cdn.pixabay.com/download/audio/2021/08/09/audio_88447e769f.mp3?filename=sea-waves-loop-11966.mp3',
-      piano: 'https://cdn.pixabay.com/download/audio/2022/03/15/audio_7366368d18.mp3?filename=meditation-piano-10656.mp3'
+      rain: 'https://actions.google.com/sounds/v1/weather/rain_heavy_loud.ogg',
+      forest: 'https://actions.google.com/sounds/v1/ambiences/forest_morning.ogg',
+      waves: 'https://actions.google.com/sounds/v1/water/waves_crashing.ogg',
+      piano: 'https://actions.google.com/sounds/v1/relaxing/meditation.ogg' // Using meditation sound as piano replacement
     };
     
     let isPlaying = false;
@@ -429,7 +440,13 @@
       const audio = document.getElementById('audioPlayer');
       audio.src = tracks[track];
       document.getElementById('musicTitle').textContent = document.querySelector(`#trackSelect option[value="${track}"]`).textContent;
-      if (isPlaying) audio.play();
+      if (isPlaying) {
+        audio.play().catch(e => {
+          console.log('Play failed:', e);
+          isPlaying = false;
+          document.getElementById('playBtn').textContent = '▶️';
+        });
+      }
     }
     
     function togglePlay() {
@@ -437,7 +454,7 @@
       const btn = document.getElementById('playBtn');
       
       if (!audio.src && !currentTrack) {
-        changeTrack('rain'); // Default to rain
+        changeTrack('rain'); 
         document.getElementById('trackSelect').value = 'rain';
       }
       
@@ -445,7 +462,10 @@
         audio.play().then(() => {
           isPlaying = true;
           btn.textContent = '⏸️';
-        }).catch(e => console.log('Audio play failed:', e));
+        }).catch(e => {
+          console.log('Audio play failed:', e);
+          alert('Could not play audio. Please check your connection.');
+        });
       } else {
         audio.pause();
         isPlaying = false;
