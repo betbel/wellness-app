@@ -142,66 +142,101 @@
     </aside>
     
     <main class="main-content">
-      <div class="header-section">
-        <div class="header-title"><h1>Welcome Back! 👋</h1><p>Let's focus on your wellness today</p></div>
-      </div>
-      
-      <div class="wellness-card">
-        <div class="wellness-score-display">
-          <svg class="wellness-ring" viewBox="0 0 100 100">
-            <circle cx="50" cy="50" r="45" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="8"/>
-            <circle cx="50" cy="50" r="45" fill="none" stroke="white" stroke-width="8" stroke-dasharray="282.74" stroke-dashoffset="0" stroke-linecap="round" transform="rotate(-90 50 50)" id="scoreRing"/>
-          </svg>
-          <div class="wellness-label">Score</div>
+      <div id="page-dashboard">
+        <div class="header-section">
+          <div class="header-title"><h1>Welcome Back! 👋</h1><p>Let's focus on your wellness today</p></div>
         </div>
-        <div style="flex:1">
-          <div class="wellness-stats">
-            <div class="wellness-stat"><div class="wellness-stat-value" id="breaksTaken">0</div><div class="wellness-stat-label">Breaks</div></div>
-            <div class="wellness-stat"><div class="wellness-stat-value" id="gamesPlayed">0</div><div class="wellness-stat-label">Games</div></div>
-            <div class="wellness-stat"><div class="wellness-stat-value" id="relaxTime">0m</div><div class="wellness-stat-label">Relax</div></div>
-            <div class="wellness-stat"><div class="wellness-stat-value" id="streak">0</div><div class="wellness-stat-label">Streak</div></div>
+        
+        <div class="wellness-card">
+          <div class="wellness-score-display">
+            <svg class="wellness-ring" viewBox="0 0 100 100">
+              <circle cx="50" cy="50" r="45" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="8"/>
+              <circle cx="50" cy="50" r="45" fill="none" stroke="white" stroke-width="8" stroke-dasharray="282.74" stroke-dashoffset="0" stroke-linecap="round" transform="rotate(-90 50 50)" id="scoreRing"/>
+            </svg>
+            <div class="wellness-label">Score</div>
+          </div>
+          <div style="flex:1">
+            <div class="wellness-stats">
+              <div class="wellness-stat"><div class="wellness-stat-value" id="breaksTaken">0</div><div class="wellness-stat-label">Breaks</div></div>
+              <div class="wellness-stat"><div class="wellness-stat-value" id="gamesPlayed">0</div><div class="wellness-stat-label">Games</div></div>
+              <div class="wellness-stat"><div class="wellness-stat-value" id="relaxTime">0m</div><div class="wellness-stat-label">Relax</div></div>
+              <div class="wellness-stat"><div class="wellness-stat-value" id="streak">0</div><div class="wellness-stat-label">Streak</div></div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="section-header"><span class="section-title">🃏 Daily Wellness Card</span><button class="btn btn-secondary" onclick="drawCard()">Draw Card</button></div>
+        <div class="wellness-card-container" id="cardContainer" style="margin-bottom: 30px;">
+          <div class="wellness-card-display" id="wellnessCard" onclick="drawCard()" style="background: linear-gradient(135deg, #1E293B, #334155); border-radius: 16px; padding: 30px; min-height: 180px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s;">
+            <div style="font-size: 48px; margin-bottom: 15px;">🃏</div>
+            <div style="color: #94A3B8; font-size: 16px;">Click to draw your daily card</div>
+          </div>
+        </div>
+        
+        <div class="section-header"><span class="section-title">💡 Wellness Tips</span></div>
+        <div class="tips-grid" style="margin-bottom: 30px;">
+          <div class="tip-card"><div class="tip-icon">🌿</div><div class="tip-text">Take regular breaks to reduce stress</div></div>
+          <div class="tip-card"><div class="tip-icon">🎮</div><div class="tip-text">Play games to refresh your mind</div></div>
+          <div class="tip-card"><div class="tip-icon">👥</div><div class="tip-text">Invite colleagues for fun breaks</div></div>
+        </div>
+        
+        <div class="section-header"><span class="section-title">🎮 Break Activities</span><button class="btn btn-secondary" onclick="openInviteModal()">👥 Invite Team</button></div>
+        <div class="games-grid" id="gamesGrid">
+          <div class="game-card" onclick="startGame('memory')">
+            <div class="game-thumb" style="background: linear-gradient(135deg, #10B981, #34D399);">🧠</div>
+            <div class="game-info"><div class="game-name">Memory Match</div><div class="game-duration">5 min • Solo</div></div>
+          </div>
+          <div class="game-card" onclick="startGame('colorRush')">
+            <div class="game-thumb" style="background: linear-gradient(135deg, #F59E0B, #FBBF24);">🎨</div>
+            <div class="game-info"><div class="game-name">Color Match</div><div class="game-duration">3 min • Solo</div></div>
+          </div>
+          <div class="game-card" onclick="startGame('ticTacToe')">
+            <div class="game-thumb" style="background: linear-gradient(135deg, #EC4899, #F472B6);">❌⭕</div>
+            <div class="game-info"><div class="game-name">Tic Tac Toe</div><div class="game-duration">5 min • 2 Players</div></div>
+          </div>
+          <div class="game-card" onclick="startGame('zenGarden')">
+            <div class="game-thumb" style="background: linear-gradient(135deg, #06B6D4, #22D3EE);">🌸</div>
+            <div class="game-info"><div class="game-name">Zen Garden</div><div class="game-duration">10 min • Relax</div></div>
           </div>
         </div>
       </div>
       
-      <div class="section-header"><span class="section-title">🃏 Daily Wellness Card</span><button class="btn btn-secondary" onclick="drawCard()">Draw Card</button></div>
-      <div class="wellness-card-container" id="cardContainer" style="margin-bottom: 30px;">
-        <div class="wellness-card-display" id="wellnessCard" onclick="drawCard()" style="background: linear-gradient(135deg, #1E293B, #334155); border-radius: 16px; padding: 30px; min-height: 180px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s;">
-          <div style="font-size: 48px; margin-bottom: 15px;">🃏</div>
-          <div style="color: #94A3B8; font-size: 16px;">Click to draw your daily card</div>
+      <div id="page-games" style="display:none;">
+        <div class="header-section">
+          <div class="header-title"><h1>🎮 Games</h1><p>Choose a game to play during your break</p></div>
+        </div>
+        <div class="games-grid">
+          <div class="game-card" onclick="startGame('memory')">
+            <div class="game-thumb" style="background: linear-gradient(135deg, #10B981, #34D399);">🧠</div>
+            <div class="game-info"><div class="game-name">Memory Match</div><div class="game-duration">5 min • Solo</div></div>
+          </div>
+          <div class="game-card" onclick="startGame('colorRush')">
+            <div class="game-thumb" style="background: linear-gradient(135deg, #F59E0B, #FBBF24);">🎨</div>
+            <div class="game-info"><div class="game-name">Color Match</div><div class="game-duration">3 min • Solo</div></div>
+          </div>
+          <div class="game-card" onclick="startGame('ticTacToe')">
+            <div class="game-thumb" style="background: linear-gradient(135deg, #EC4899, #F472B6);">❌⭕</div>
+            <div class="game-info"><div class="game-name">Tic Tac Toe</div><div class="game-duration">5 min • 2 Players</div></div>
+          </div>
+          <div class="game-card" onclick="startGame('zenGarden')">
+            <div class="game-thumb" style="background: linear-gradient(135deg, #06B6D4, #22D3EE);">🌸</div>
+            <div class="game-info"><div class="game-name">Zen Garden</div><div class="game-duration">10 min • Relax</div></div>
+          </div>
         </div>
       </div>
       
-      <div class="section-header"><span class="section-title">💡 Wellness Tips</span></div>
-      <div class="tips-grid" style="margin-bottom: 30px;">
-        <div class="tip-card"><div class="tip-icon">🌿</div><div class="tip-text">Take regular breaks to reduce stress</div></div>
-        <div class="tip-card"><div class="tip-icon">🎮</div><div class="tip-text">Play games to refresh your mind</div></div>
-        <div class="tip-card"><div class="tip-icon">👥</div><div class="tip-text">Invite colleagues for fun breaks</div></div>
-      </div>
-      
-      <div class="section-header"><span class="section-title">🎮 Break Activities</span><button class="btn btn-secondary" onclick="openInviteModal()">👥 Invite Team</button></div>
-      <div class="games-grid" id="gamesGrid">
-        <div class="game-card" onclick="startGame('memory')">
-          <div class="game-thumb" style="background: linear-gradient(135deg, #10B981, #34D399);">🧠</div>
-          <div class="game-info"><div class="game-name">Memory Match</div><div class="game-duration">5 min • Solo</div></div>
+      <div id="page-team" style="display:none;">
+        <div class="header-section">
+          <div class="header-title"><h1>👥 Team</h1><p>Invite colleagues to join you for breaks</p></div>
         </div>
-        <div class="game-card" onclick="startGame('colorRush')">
-          <div class="game-thumb" style="background: linear-gradient(135deg, #F59E0B, #FBBF24);">🎨</div>
-          <div class="game-info"><div class="game-name">Color Match</div><div class="game-duration">3 min • Solo</div></div>
+        <div class="section-header"><span class="section-title">Team Members</span><button class="btn btn-secondary" onclick="openInviteModal()">👥 Invite</button></div>
+        <div class="peers-grid" id="peersGridFull"></div>
+        <div class="section-header" style="margin-top:30px;"><span class="section-title">Quick Invite</span></div>
+        <div class="card">
+          <p style="color:#94A3B8;margin-bottom:15px;">Share this link with your team:</p>
+          <input type="text" id="shareLink" readonly style="background:#0F172A;padding:12px;border-radius:8px;border:1px solid #334155;color:#F8FAFC;width:100%;margin-bottom:10px;" onclick="this.select()">
+          <button class="btn btn-primary" onclick="copyShareLink()">📋 Copy Link</button>
         </div>
-        <div class="game-card" onclick="startGame('ticTacToe')">
-          <div class="game-thumb" style="background: linear-gradient(135deg, #EC4899, #F472B6);">❌⭕</div>
-          <div class="game-info"><div class="game-name">Tic Tac Toe</div><div class="game-duration">5 min • 2 Players</div></div>
-        </div>
-        <div class="game-card" onclick="startGame('zenGarden')">
-          <div class="game-thumb" style="background: linear-gradient(135deg, #06B6D4, #22D3EE);">🌸</div>
-          <div class="game-info"><div class="game-name">Zen Garden</div><div class="game-duration">10 min • Relax</div></div>
-        </div>
-      </div>
-      
-      <div class="section-header"><span class="section-title">👥 Team Members</span></div>
-      <div class="peers-grid" id="peersGrid">
-        <div class="card" style="padding: 16px; text-align: center; color: #94A3B8;">Add team members in Settings</div>
       </div>
     </main>
   </div>
@@ -357,7 +392,21 @@
       state.wellnessScore = Math.max(0, Math.min(100, score));
     }
     
-    function showPage(page) { document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active')); event.target.closest('.nav-item').classList.add('active'); }
+    function showPage(page) { 
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active')); 
+      event.target.closest('.nav-item').classList.add('active');
+      document.querySelectorAll('[id^="page-"]').forEach(p => p.style.display = 'none');
+      document.getElementById('page-' + page).style.display = 'block';
+      if (page === 'team') {
+        document.getElementById('shareLink').value = window.location.href;
+        renderPeersFull();
+      }
+    }
+    function copyShareLink() {
+      const link = window.location.href;
+      navigator.clipboard.writeText(link);
+      alert('Link copied! Share with your team.');
+    }
     function openModal(id) { document.getElementById(id).classList.add('active'); }
     function closeModal(id) { document.getElementById(id).classList.remove('active'); }
     function openSettings() { openModal('settingsModal'); }
@@ -379,6 +428,11 @@
     function renderPeers() {
       const grid = document.getElementById('peersGrid');
       if (state.peers.length === 0) { grid.innerHTML = '<div class="card" style="padding: 16px; text-align: center; color: #94A3B8;">Add team members in Settings</div>'; return; }
+      grid.innerHTML = state.peers.map(p => `<div class="peer-card"><div class="peer-avatar">${p.name.charAt(0)}</div><div><div class="peer-name">${p.name}</div><div class="peer-status"><span class="status-dot ${p.status?.toLowerCase() || 'offline'}"></span>${p.status || 'Offline'}</div></div></div>`).join('');
+    }
+    function renderPeersFull() {
+      const grid = document.getElementById('peersGridFull');
+      if (state.peers.length === 0) { grid.innerHTML = '<div class="card" style="padding: 16px; text-align: center; color: #94A3B8;">No team members yet</div>'; return; }
       grid.innerHTML = state.peers.map(p => `<div class="peer-card"><div class="peer-avatar">${p.name.charAt(0)}</div><div><div class="peer-name">${p.name}</div><div class="peer-status"><span class="status-dot ${p.status?.toLowerCase() || 'offline'}"></span>${p.status || 'Offline'}</div></div></div>`).join('');
     }
     
