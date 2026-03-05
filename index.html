@@ -186,10 +186,10 @@
           </div>
           <select id="trackSelect" onchange="changeTrack(this.value)" style="width:100%;margin-top:10px;padding:5px;background:var(--card-bg);color:var(--text-color);border:1px solid var(--border-color);border-radius:4px;font-size:11px;">
             <option value="">Select Music...</option>
-            <option value="rain">Gentle Rain</option>
-            <option value="forest">Forest Sounds</option>
-            <option value="waves">Ocean Waves</option>
-            <option value="piano">Calming Piano</option>
+            <option value="handpan">Handpan Journey</option>
+            <option value="zen">Zen Garden</option>
+            <option value="om">Deep Om</option>
+            <option value="ambient">Ambient Float</option>
           </select>
           <audio id="audioPlayer" loop></audio>
         </div>
@@ -425,10 +425,10 @@
 
     // Music Player Logic
     const tracks = {
-      rain: 'https://actions.google.com/sounds/v1/weather/rain_heavy_loud.ogg',
-      forest: 'https://actions.google.com/sounds/v1/ambiences/forest_morning.ogg',
-      waves: 'https://actions.google.com/sounds/v1/water/waves_crashing.ogg',
-      piano: 'https://actions.google.com/sounds/v1/relaxing/meditation.ogg' // Using meditation sound as piano replacement
+      handpan: 'https://assets.mixkit.co/music/preview/mixkit-handpan-meditation-120.mp3',
+      zen: 'https://assets.mixkit.co/music/preview/mixkit-zen-garden-162.mp3',
+      om: 'https://assets.mixkit.co/music/preview/mixkit-deep-meditation-109.mp3',
+      ambient: 'https://assets.mixkit.co/music/preview/mixkit-ambient-texture-167.mp3'
     };
     
     let isPlaying = false;
@@ -454,8 +454,8 @@
       const btn = document.getElementById('playBtn');
       
       if (!audio.src && !currentTrack) {
-        changeTrack('rain'); 
-        document.getElementById('trackSelect').value = 'rain';
+        changeTrack('handpan'); 
+        document.getElementById('trackSelect').value = 'handpan';
       }
       
       if (audio.paused) {
