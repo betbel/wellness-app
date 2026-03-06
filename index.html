@@ -43,6 +43,15 @@
       --accent-color: #818cf8;
       --border-color: #4338ca;
     }
+    [data-theme="calm"] {
+      --bg-color: #F0F9FF;
+      --card-bg: #FFFFFF;
+      --text-color: #334155;
+      --text-muted: #64748B;
+      --border-color: #E2E8F0;
+      --accent-grad: linear-gradient(135deg, #38BDF8, #818CF8);
+      --accent-color: #38BDF8;
+    }
     
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -191,7 +200,6 @@
             <option value="om">Deep Om</option>
             <option value="ambient">Ambient Float</option>
           </select>
-          <audio id="audioPlayer" loop></audio>
         </div>
         
         <div class="user-info" style="margin-top: 15px;">
@@ -369,6 +377,7 @@
           <option value="forest">Forest Green</option>
           <option value="sunset">Sunset Orange</option>
           <option value="purple">Purple Dream</option>
+          <option value="calm">Calm Light</option>
         </select>
       </div>
       <hr style="border-color:var(--border-color);margin:20px 0;">
@@ -423,103 +432,160 @@
       settings: { userName: '', breakInterval: 60, theme: 'default' }, todayCard: null
     };
 
-    // Music Player Logic
-    const tracks = {
-      handpan: 'https://upload.wikimedia.org/wikipedia/commons/e/e4/Handpan_C_major.ogg',
-      zen: 'https://upload.wikimedia.org/wikipedia/commons/5/5b/Ludwig_van_Beethoven_-_Moonlight_Sonata.ogg', // Reliable classical placeholder for Zen
-      om: 'https://upload.wikimedia.org/wikipedia/commons/d/d8/Om_chant.ogg', // Simulated reliable link
-      ambient: 'https://upload.wikimedia.org/wikipedia/commons/0/05/Ambient_sound_of_a_foggy_forest.ogg'
-    };
-    
-    // Better fallback urls if those fail
-    const reliableTracks = {
-      handpan: 'https://archive.org/download/handpan-hang-drum-music/Hang%20Drum%20Solo.mp3',
-      zen: 'https://archive.org/download/relaxing-music-collection/Flute%20Meditation.mp3',
-      om: 'https://archive.org/download/om-chanting-meditation/Om%20Chanting.mp3',
-      ambient: 'https://archive.org/download/ambient-space-music/Deep%20Space.mp3'
+    // Music Player Logic - Web Audio API (No external files needed)
+    const AudioEngine = {
+      ctx: null,
+      isPlaying: false,
+      currentTrack: null,
+      nodes: [],
+      timer: null,
+
+      init() {
+        if (!this.ctx) {
+          this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (this.ctx.state === 'suspended') {
+          this.ctx.resume();
+        }
+      },
+
+      stop() {
+        this.isPlaying = false;
+        if (this.timer) clearTimeout(this.timer);
+        this.nodes.forEach(n => {
+          try { n.stop(); n.disconnect(); } catch(e){}
+        });
+        this.nodes = [];
+      },
+
+      play(track) {
+        this.init();
+        this.stop();
+        this.isPlaying = true;
+        this.currentTrack = track;
+        
+        if (track === 'handpan') this.loopHandpan();
+        else if (track === 'zen') this.loopZen();
+        else if (track === 'om') this.loopOm();
+        else if (track === 'ambient') this.loopAmbient();
+      },
+
+      loopHandpan() {
+        if (!this.isPlaying) return;
+        const freqs = [261.63, 293.66, 329.63, 392.00, 440.00, 523.25]; 
+        const freq = freqs[Math.floor(Math.random() * freqs.length)];
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+        gain.gain.setValueAtTime(0, this.ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.2, this.ctx.currentTime + 0.1);
+        gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 3);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + 3.5);
+        this.timer = setTimeout(() => this.loopHandpan(), 800 + Math.random() * 1000);
+      },
+
+      loopZen() {
+        if (!this.isPlaying) return;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        const freqs = [196.00, 220.00, 246.94, 261.63, 293.66]; 
+        osc.frequency.value = freqs[Math.floor(Math.random() * freqs.length)];
+        osc.type = 'triangle';
+        gain.gain.setValueAtTime(0, this.ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.05, this.ctx.currentTime + 2);
+        gain.gain.linearRampToValueAtTime(0, this.ctx.currentTime + 6);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start();
+        osc.stop(this.ctx.currentTime + 6);
+        this.timer = setTimeout(() => this.loopZen(), 4000);
+      },
+
+      loopOm() {
+        if (!this.isPlaying) return;
+        const osc1 = this.ctx.createOscillator();
+        const osc2 = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc1.frequency.value = 136.1; 
+        osc2.frequency.value = 136.6; 
+        osc1.type = 'sawtooth';
+        osc2.type = 'sine';
+        const filter = this.ctx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.value = 200;
+        gain.gain.value = 0.1;
+        osc1.connect(filter);
+        osc2.connect(filter);
+        filter.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc1.start();
+        osc2.start();
+        this.nodes.push(osc1, osc2);
+      },
+
+      loopAmbient() {
+        if (!this.isPlaying) return;
+        const bufferSize = this.ctx.sampleRate * 2;
+        const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+        const noise = this.ctx.createBufferSource();
+        noise.buffer = buffer;
+        noise.loop = true;
+        const filter = this.ctx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.value = 300;
+        const gain = this.ctx.createGain();
+        gain.gain.value = 0.03;
+        noise.connect(filter);
+        filter.connect(gain);
+        gain.connect(this.ctx.destination);
+        noise.start();
+        this.nodes.push(noise);
+      }
     };
 
-    let isPlaying = false;
-    let currentTrack = '';
-    
     function changeTrack(track) {
       if (!track) return;
-      currentTrack = track;
-      const audio = document.getElementById('audioPlayer');
-      // Use Archive.org links as they are very stable for direct play
-      if (track === 'handpan') audio.src = 'https://archive.org/download/HandpanMusic/Handpan.mp3';
-      else if (track === 'zen') audio.src = 'https://archive.org/download/JapaneseFluteMusic/Shakuhachi.mp3';
-      else if (track === 'om') audio.src = 'https://archive.org/download/OmChant/Om.mp3';
-      else if (track === 'ambient') audio.src = 'https://archive.org/download/AmbientSleep/Drift.mp3';
-      
-      // Fallback to these specific known working URLs if the above are generic
-      if (track === 'handpan') audio.src = 'https://ia800605.us.archive.org/8/items/onclassical-quality-wav-audio-files-of-classical-music/onclassical_luisi_rachmaninoff_moment-musical_op16_no4.mp3'; // Classical piano as reliable test
-      if (track === 'zen') audio.src = 'https://ia800301.us.archive.org/12/items/calm-meditation-music/Calm%20Meditation.mp3';
-      
-      // Let's use 100% confirmed working direct links from a stable CDN for this demo to be sure
-      if (track === 'handpan') audio.src = 'https://cdn.staticcrate.com/stock-hd/audio/soundscrate-handpan-dream-1.mp3';
-      if (track === 'zen') audio.src = 'https://cdn.staticcrate.com/stock-hd/audio/soundscrate-zen-garden-flute.mp3';
-      if (track === 'om') audio.src = 'https://cdn.staticcrate.com/stock-hd/audio/soundscrate-deep-om-chant.mp3';
-      if (track === 'ambient') audio.src = 'https://cdn.staticcrate.com/stock-hd/audio/soundscrate-ambient-nebula.mp3';
-
-      // RE-VERIFIED LINKS (Mixkit via direct CDN which usually works, if not we fallback to Google)
-      // Google's are the most reliable for demos:
-      if (track === 'handpan') audio.src = 'https://actions.google.com/sounds/v1/relaxing/meditation.ogg'; // Reliable fallback
-      if (track === 'zen') audio.src = 'https://actions.google.com/sounds/v1/relaxing/nature.ogg';
-      if (track === 'om') audio.src = 'https://actions.google.com/sounds/v1/ambiences/hum.ogg'; // Drone sound
-      if (track === 'ambient') audio.src = 'https://actions.google.com/sounds/v1/water/waves_crashing.ogg';
-
+      AudioEngine.play(track);
       document.getElementById('musicTitle').textContent = document.querySelector(`#trackSelect option[value="${track}"]`).textContent;
-      if (isPlaying) {
-        audio.play().catch(e => {
-          console.log('Play failed:', e);
-          isPlaying = false;
-          document.getElementById('playBtn').textContent = '▶️';
-          alert('Stream error. Try another track.');
-        });
-      }
+      document.getElementById('playBtn').textContent = '⏸️';
     }
     
     function togglePlay() {
-      const audio = document.getElementById('audioPlayer');
       const btn = document.getElementById('playBtn');
+      const track = document.getElementById('trackSelect').value || 'handpan';
       
-      if (!audio.src && !currentTrack) {
-        changeTrack('handpan'); 
-        document.getElementById('trackSelect').value = 'handpan';
-      }
-      
-      if (audio.paused) {
-        audio.play().then(() => {
-          isPlaying = true;
-          btn.textContent = '⏸️';
-        }).catch(e => {
-          console.log('Audio play failed:', e);
-          alert('Could not play audio. Please check your connection.');
-        });
-      } else {
-        audio.pause();
-        isPlaying = false;
+      if (AudioEngine.isPlaying) {
+        AudioEngine.stop();
         btn.textContent = '▶️';
+      } else {
+        if (!document.getElementById('trackSelect').value) {
+          document.getElementById('trackSelect').value = track;
+        }
+        changeTrack(track);
+        btn.textContent = '⏸️';
       }
     }
     
     function prevTrack() {
       const opts = Array.from(document.getElementById('trackSelect').options).map(o => o.value).filter(v => v);
-      let idx = opts.indexOf(currentTrack);
+      let idx = opts.indexOf(AudioEngine.currentTrack || 'handpan');
       idx = idx <= 0 ? opts.length - 1 : idx - 1;
-      changeTrack(opts[idx]);
       document.getElementById('trackSelect').value = opts[idx];
-      if (!isPlaying) togglePlay();
+      changeTrack(opts[idx]);
     }
     
     function nextTrack() {
       const opts = Array.from(document.getElementById('trackSelect').options).map(o => o.value).filter(v => v);
-      let idx = opts.indexOf(currentTrack);
+      let idx = opts.indexOf(AudioEngine.currentTrack || 'handpan');
       idx = idx >= opts.length - 1 ? 0 : idx + 1;
-      changeTrack(opts[idx]);
       document.getElementById('trackSelect').value = opts[idx];
-      if (!isPlaying) togglePlay();
+      changeTrack(opts[idx]);
     }
     
     function changeTheme(theme) {
@@ -777,38 +843,45 @@
       el.classList.add('flipped');
       
       if (memFlipped.length === 2) {
-        setTimeout(checkMatch, 500);
+        setTimeout(checkMatch, 800);
       }
     }
     
     function checkMatch() {
-      const i1 = memFlipped[0], i2 = memFlipped[1];
-      if (memCards[i1].symbol === memCards[i2].symbol) {
-        memCards[i1].matched = true;
-        memCards[i2].matched = true;
-        memScore += 100;
-        const el = document.getElementById('memScore');
-        if (el) el.textContent = memScore;
-        state.gamesPlayed++;
-        state.relaxTime += 2;
-        calculateWellness();
-        saveData();
-        updateDisplay();
-        if (memCards.every(c => c.matched)) {
-          setTimeout(() => alert('You won!'), 100);
+      try {
+        const i1 = memFlipped[0], i2 = memFlipped[1];
+        if (!memCards[i1] || !memCards[i2]) { memFlipped = []; return; }
+        
+        if (memCards[i1].symbol === memCards[i2].symbol) {
+          memCards[i1].matched = true;
+          memCards[i2].matched = true;
+          memScore += 100;
+          const el = document.getElementById('memScore');
+          if (el) el.textContent = memScore;
+          state.gamesPlayed++;
+          state.relaxTime += 2;
+          calculateWellness();
+          saveData();
+          updateDisplay();
+          if (memCards.every(c => c.matched)) {
+            setTimeout(() => alert('You won!'), 100);
+          }
+        } else {
+          memCards[i1].flipped = false;
+          memCards[i2].flipped = false;
+          const grid = document.getElementById('memGrid');
+          if (grid && grid.children[i1] && grid.children[i2]) {
+            grid.children[i1].textContent = '?';
+            grid.children[i1].classList.remove('flipped');
+            grid.children[i2].textContent = '?';
+            grid.children[i2].classList.remove('flipped');
+          }
         }
-      } else {
-        memCards[i1].flipped = false;
-        memCards[i2].flipped = false;
-        const grid = document.getElementById('memGrid');
-        if (grid && grid.children[i1] && grid.children[i2]) {
-          grid.children[i1].textContent = '?';
-          grid.children[i1].classList.remove('flipped');
-          grid.children[i2].textContent = '?';
-          grid.children[i2].classList.remove('flipped');
-        }
+      } catch (e) {
+        console.error(e);
+      } finally {
+        memFlipped = [];
       }
-      memFlipped = [];
     }
     
     function initColorRush() {
@@ -861,16 +934,16 @@
       document.getElementById('tttStatus').textContent = 'Your turn (X)';
       for (let i = 0; i < 9; i++) {
         const d = document.createElement('div');
-        d.className = 'ttt-cell';
-        d.onclick = function() { doTicTacToe(i, d); };
-        board.appendChild(d);
-      }
+      d.className = 'ttt-cell';
+      d.onclick = function() { if(ttt.player === 'X') doTicTacToe(i, d); };
+      board.appendChild(d);
     }
+  }
+  
+  function doTicTacToe(i, el) {
+    if (ttt.board[i] || ttt.over) return;
     
-    function doTicTacToe(i, el) {
-      if (ttt.board[i] || ttt.over || ttt.player === 'O') return;
-      
-      ttt.board[i] = ttt.player;
+    ttt.board[i] = ttt.player;
       el.textContent = ttt.player;
       el.classList.add(ttt.player.toLowerCase());
       
@@ -947,10 +1020,15 @@
     }
     
     document.querySelectorAll('.modal').forEach(m => { m.onclick = e => { if (e.target === m) m.classList.remove('active'); }; });
-    loadData();
-    showPage('home');
-    const homeNav = document.querySelector('.nav-item');
-    if (homeNav) homeNav.classList.add('active');
+    
+    // Ensure the page loads correctly
+    window.onload = function() {
+      loadData();
+      showPage('home');
+      // Set Home as active in sidebar
+      const navItems = document.querySelectorAll('.nav-item');
+      if (navItems.length > 0) navItems[0].classList.add('active');
+    };
   </script>
 </body>
 </html>
