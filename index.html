@@ -129,6 +129,21 @@
     .modal-header h2 { font-size: 20px; }
     .close-btn { background: none; border: none; color: var(--text-muted); font-size: 24px; cursor: pointer; }
     
+    /* Lock Screen */
+    .lock-screen { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-color); z-index: 2000; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 20px; }
+    .lock-screen.active { display: flex; }
+    .lock-icon { font-size: 64px; margin-bottom: 20px; animation: pulse 2s infinite; }
+    .lock-timer { font-size: 48px; font-weight: 700; margin-bottom: 10px; font-variant-numeric: tabular-nums; }
+    .lock-message { color: var(--text-muted); margin-bottom: 30px; max-width: 400px; }
+    
+    @keyframes pulse { 0% { opacity: 0.8; transform: scale(1); } 50% { opacity: 1; transform: scale(1.1); } 100% { opacity: 0.8; transform: scale(1); } }
+    
+    .schedule-item { display: flex; gap: 10px; margin-bottom: 10px; }
+    .schedule-input { flex: 1; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-color); }
+    .remove-btn { color: #EF4444; background: none; border: none; cursor: pointer; }
+    
+    .timer-badge { background: rgba(239, 68, 68, 0.2); color: #EF4444; padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: 600; margin-left: auto; }
+    
     .form-group { margin-bottom: 16px; }
     .form-group label { display: block; margin-bottom: 6px; color: var(--text-muted); font-size: 13px; }
     .form-group input, .form-group select { width: 100%; padding: 12px; background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-color); font-size: 14px; }
@@ -179,7 +194,7 @@
       <div class="logo"><div class="logo-icon">🧘</div><span class="logo-text">WorkWellbeing</span></div>
       <nav>
         <div class="nav-item active" onclick="showPage('home', event)"><span class="nav-icon">🏠</span><span>Home</span></div>
-        <div class="nav-item" onclick="showPage('dashboard', event)"><span class="nav-icon">📊</span><span>Dashboard</span></div>
+        <div class="nav-item" onclick="showPage('dashboard', event)"><span class="nav-icon">📊</span><span>Dashboard</span><span id="sessionTimer" class="timer-badge">10:00</span></div>
         <div class="nav-item" onclick="showPage('games', event)"><span class="nav-icon">🎮</span><span>Games</span></div>
         <div class="nav-item" onclick="showPage('team', event)"><span class="nav-icon">👥</span><span>Team</span></div>
         <div class="nav-item" onclick="showReport()"><span class="nav-icon">📈</span><span>Report</span></div>
@@ -365,6 +380,17 @@
     </div>
   </div>
   
+  <div class="lock-screen" id="lockScreen">
+    <div class="lock-icon">🔒</div>
+    <div class="lock-timer" id="lockTimer">--:--</div>
+    <div class="lock-message">
+      <h3>Break Time Over</h3>
+      <p>Your 10-minute wellness break is complete. The app will unlock at your next scheduled time.</p>
+    </div>
+    <div class="next-slot" id="nextSlotDisplay" style="margin-bottom: 20px; font-size: 14px; opacity: 0.7;">Next Unlock: --:--</div>
+    <button class="btn btn-secondary" style="font-size: 12px; opacity: 0.5;" onclick="unlockApp(true)">Emergency Unlock (Dev)</button>
+  </div>
+
   <div class="modal" id="settingsModal">
     <div class="modal-content">
       <div class="modal-header"><h2>Settings</h2><button class="close-btn" onclick="closeModal('settingsModal')">&times;</button></div>
@@ -382,12 +408,14 @@
       </div>
       <hr style="border-color:var(--border-color);margin:20px 0;">
       <div class="form-group">
-        <label>Break Reminder</label>
-        <select id="breakInterval" onchange="saveSetting('breakInterval', this.value)">
-          <option value="30">Every 30 minutes</option>
-          <option value="45">Every 45 minutes</option>
-          <option value="60" selected>Every 60 minutes</option>
-        </select>
+        <label>Scheduled Breaks</label>
+        <div id="scheduleList" style="margin-bottom: 10px;"></div>
+        <div style="display:flex;gap:10px;">
+          <input type="time" id="newScheduleTime" class="schedule-input">
+          <button class="btn btn-secondary" onclick="addScheduleTime()">Add</button>
+        </div>
+        <p style="font-size:11px;color:var(--text-muted);margin-top:8px;">App unlocks at these times.</p>
+        <button class="btn btn-secondary" onclick="enableNotifications()" style="width:100%;margin-top:10px;">🔔 Enable Notifications</button>
       </div>
     </div>
   </div>
@@ -429,7 +457,8 @@
     let state = {
       wellnessScore: 100, breaksTaken: 0, gamesPlayed: 0, relaxTime: 0, streak: 0,
       lastBreakDate: null, peers: [{ name: 'Alice', status: 'Online' }, { name: 'Bob', status: 'Online' }, { name: 'Charlie', status: 'Away' }], selectedPeers: [],
-      settings: { userName: '', breakInterval: 60, theme: 'default' }, todayCard: null
+      settings: { userName: '', theme: 'default', schedule: ['10:00', '14:00', '16:00'] }, todayCard: null,
+      sessionStart: 0, locked: false, nextUnlock: 0
     };
 
     // Music Player Logic - Web Audio API (No external files needed)
@@ -621,8 +650,137 @@
         if (themeSelect) themeSelect.value = state.settings.theme;
       }
       
+      // Initialize Session
+      if (!state.sessionStart) state.sessionStart = Date.now();
+      checkLockStatus();
+      renderScheduleList();
+      setInterval(checkSession, 1000);
+      setInterval(checkSchedule, 60000);
+      
       updateDisplay(); 
     }
+    
+    // ========== LOCK & SCHEDULE LOGIC ==========
+    const SESSION_LIMIT = 10 * 60 * 1000; // 10 minutes
+
+    function checkSession() {
+      if (state.locked) return;
+      
+      const elapsed = Date.now() - state.sessionStart;
+      const remaining = SESSION_LIMIT - elapsed;
+      
+      if (remaining <= 0) {
+        lockApp();
+      } else {
+        const m = Math.floor(remaining / 60000);
+        const s = Math.floor((remaining % 60000) / 1000);
+        const el = document.getElementById('sessionTimer');
+        if (el) el.textContent = `${m}:${s < 10 ? '0'+s : s}`;
+      }
+    }
+    
+    function lockApp() {
+      state.locked = true;
+      document.getElementById('lockScreen').classList.add('active');
+      document.getElementById('sessionTimer').textContent = "0:00";
+      
+      // Find next scheduled time
+      const now = new Date();
+      const currentMins = now.getHours() * 60 + now.getMinutes();
+      
+      // Parse schedule
+      let slots = (state.settings.schedule || []).map(t => {
+        const [h, m] = t.split(':').map(Number);
+        return h * 60 + m;
+      }).sort((a,b) => a-b);
+      
+      if (slots.length === 0) slots = [currentMins + 60]; // Default 1 hour later if no schedule
+      
+      let next = slots.find(s => s > currentMins);
+      if (!next) next = slots[0] + 24 * 60; // Next day
+      
+      // Display next unlock
+      const h = Math.floor(next / 60) % 24;
+      const m = next % 60;
+      const timeStr = `${h}:${m < 10 ? '0'+m : m}`;
+      document.getElementById('nextSlotDisplay').textContent = `Next Unlock: ${timeStr}`;
+      
+      saveData();
+    }
+    
+    function unlockApp(force = false) {
+      if (force || !state.locked) {
+        state.locked = false;
+        state.sessionStart = Date.now();
+        document.getElementById('lockScreen').classList.remove('active');
+        saveData();
+      }
+    }
+    
+    function checkSchedule() {
+      const now = new Date();
+      const timeStr = `${now.getHours()}:${now.getMinutes() < 10 ? '0'+now.getMinutes() : now.getMinutes()}`;
+      
+      if (state.settings.schedule && state.settings.schedule.includes(timeStr)) {
+        if (state.locked) {
+          unlockApp(true);
+          new Notification("WorkWellbeing", { body: "It's time for your scheduled break!" });
+        } else {
+           new Notification("WorkWellbeing", { body: "Break time started!" });
+        }
+      }
+    }
+    
+    function checkLockStatus() {
+      if (state.locked) lockApp();
+    }
+    
+    function renderScheduleList() {
+      const list = document.getElementById('scheduleList');
+      if (!list) return;
+      
+      const times = state.settings.schedule || [];
+      list.innerHTML = times.map((t, i) => `
+        <div class="schedule-item">
+          <div style="flex:1;padding:8px;background:var(--card-bg);border:1px solid var(--border-color);border-radius:6px;">${t}</div>
+          <button class="remove-btn" onclick="removeScheduleTime(${i})">×</button>
+        </div>
+      `).join('');
+    }
+    
+    function addScheduleTime() {
+      const input = document.getElementById('newScheduleTime');
+      const val = input.value;
+      if (!val) return;
+      
+      if (!state.settings.schedule) state.settings.schedule = [];
+      if (!state.settings.schedule.includes(val)) {
+        state.settings.schedule.push(val);
+        state.settings.schedule.sort();
+        saveData();
+        renderScheduleList();
+      }
+      input.value = '';
+    }
+    
+    function removeScheduleTime(index) {
+      state.settings.schedule.splice(index, 1);
+      saveData();
+      renderScheduleList();
+    }
+    
+    function enableNotifications() {
+      if (!("Notification" in window)) {
+        alert("This browser does not support desktop notifications");
+        return;
+      }
+      Notification.requestPermission().then(permission => {
+        if (permission === "granted") {
+          new Notification("WorkWellbeing", { body: "Notifications enabled!" });
+        }
+      });
+    }
+
     function saveData() { 
       try { localStorage.setItem('wellbeing_data', JSON.stringify(state)); } catch(e) {} 
     }
